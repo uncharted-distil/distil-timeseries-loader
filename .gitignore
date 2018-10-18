@@ -1,0 +1,3 @@
+.mypy_cache
+DistilTimeseriesLoader.egg-info
+timeseriesloader/__pycache__
