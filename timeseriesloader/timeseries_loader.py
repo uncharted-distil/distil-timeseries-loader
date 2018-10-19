@@ -12,9 +12,6 @@ from d3m.primitive_interfaces import base, transformer
 
 __all__ = ('TimeSeriesLoaderPrimitive',)
 
-Inputs = container.DataFrame
-Outputs = container.DataFrame
-
 
 class Hyperparams(hyperparams.Hyperparams):
     file_col_index = hyperparams.Hyperparameter[int](
@@ -34,7 +31,9 @@ class Hyperparams(hyperparams.Hyperparams):
     )
 
 
-class TimeSeriesLoaderPrimitive(transformer.TransformerPrimitiveBase[Inputs, Outputs, Hyperparams]):
+class TimeSeriesLoaderPrimitive(transformer.TransformerPrimitiveBase[container.DataFrame,
+                                                                     container.DataFrame,
+                                                                     Hyperparams]):
     """
     Reads the time series files from a given column in an input dataframe into a new M x N dataframe,
     where each timeseries occupies one of M rows, and each of the row's N entries represents a timestamp.
@@ -45,17 +44,13 @@ class TimeSeriesLoaderPrimitive(transformer.TransformerPrimitiveBase[Inputs, Out
         'text/csv',
     )
 
-    _semantic_types = (
-
-    )
-
     __author__ = 'Uncharted Software',
     metadata = metadata_base.PrimitiveMetadata(
         {
             'id': '1689aafa-16dc-4c55-8ad4-76cadcf46086',
             'version': '0.1.0',
             'name': 'Time series loader',
-            'python_path': 'd3m.primitives.data.TimeSeriesLoader',
+            'python_path': 'd3m.primitives.distil.TimeSeriesLoader',
             'keywords': ['series', 'reader', 'csv'],
             'source': {
                 'name': 'Uncharted Software',
@@ -63,9 +58,9 @@ class TimeSeriesLoaderPrimitive(transformer.TransformerPrimitiveBase[Inputs, Out
             },
             'installation': [{
                 'type': metadata_base.PrimitiveInstallationType.PIP,
-                'package_uri': 'git+https://gitlab.com/unchartedsoftware/distil-timeseries-loader.git@{git_commit}#egg=distil-timeseries-loader'.format(
-                    git_commit=d3m_utils.current_git_commit(os.path.dirname(__file__)),
-                ),
+                'package_uri': 'git+https://gitlab.com/unchartedsoftware/distil-timeseries-loader.git@' +
+                               '{git_commit}#egg=distil-timeseries-loader'
+                               .format(git_commit=d3m_utils.current_git_commit(os.path.dirname(__file__)),),
             }],
             'algorithm_types': [
                 metadata_base.PrimitiveAlgorithmType.FILE_MANIPULATION,
@@ -85,16 +80,22 @@ class TimeSeriesLoaderPrimitive(transformer.TransformerPrimitiveBase[Inputs, Out
         semantic_types = column_metadata.get('semantic_types', [])
         media_types = set(column_metadata.get('media_types', []))
 
-        if 'https://metadata.datadrivendiscovery.org/types/FileName' in semantic_types and media_types <= set(cls._supported_media_types):
+        if 'https://metadata.datadrivendiscovery.org/types/FileName' in semantic_types and \
+                media_types <= set(cls._supported_media_types):
             return True
 
         return False
 
-    def produce(self, *, inputs: Inputs, timeout: float = None, iterations: int = None) -> base.CallResult[Outputs]:
+    def produce(self, *,
+                inputs: container.DataFrame,
+                timeout: float = None,
+                iterations: int = None) -> base.CallResult[container.DataFrame]:
+
         # make sure the column at the specified index exists and that it is a timeseries column
         file_index = self.hyperparams['file_col_index']
         if not self._can_use_column(inputs.metadata, file_index):
-            raise exceptions.InvalidArgumentValueError('column idx=' + str(file_index) + ' from ' + str(inputs.columns) + ' does not contain file names')
+            raise exceptions.InvalidArgumentValueError('column idx=' + str(file_index) + ' from '
+                                                       + str(inputs.columns) + ' does not contain file names')
 
         value_index = self.hyperparams['value_col_index']
         time_index = self.hyperparams['time_col_index']
@@ -118,7 +119,10 @@ class TimeSeriesLoaderPrimitive(transformer.TransformerPrimitiveBase[Inputs, Out
         return base.CallResult(container.DataFrame(data=timeseries_dataframe))
 
     @classmethod
-    def can_accept(cls, *, method_name: str, arguments: typing.Dict[str, typing.Union[metadata_base.Metadata, type]], hyperparams: Hyperparams) -> typing.Optional[metadata_base.DataMetadata]:
+    def can_accept(cls, *,
+                   method_name: str,
+                   arguments: typing.Dict[str, typing.Union[metadata_base.Metadata, type]],
+                   hyperparams: Hyperparams) -> typing.Optional[metadata_base.DataMetadata]:
         output_metadata = super().can_accept(method_name=method_name, arguments=arguments, hyperparams=hyperparams)
 
         # If structural types didn't match, don't bother.

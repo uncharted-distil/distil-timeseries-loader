@@ -4,18 +4,19 @@ import csv
 
 from d3m import container
 from d3m.primitives.distil import TimeSeriesLoader
+from d3m.metadata import base as metadata_base
 
 
 class TimeSeriesLoaderPrimitiveTestCase(unittest.TestCase):
 
-    _dataset_path = path.abspath(path.join(path.dirname(__file__), 'data', 'datasets', 'timeseries_dataset_2'))
+    _dataset_path = path.abspath(path.join(path.dirname(__file__), 'dataset'))
 
     def test_basic(self) -> None:
         dataframe = self._load_timeseries()
 
         # create the time series dataframe
         hyperparams_class = \
-            TimeSeriesLoaderPrimitive.metadata.query()['primitive_code']['class_type_arguments']['Hyperparams']
+            TimeSeriesLoader.metadata.query()['primitive_code']['class_type_arguments']['Hyperparams']
         hyperparams = hyperparams_class.defaults().replace(
             {
                 'file_col_index': 0,
@@ -23,19 +24,17 @@ class TimeSeriesLoaderPrimitiveTestCase(unittest.TestCase):
                 'time_col_index': 0
             }
         )
-        ts_reader = timeseries_reader.TimeSeriesReaderPrimitive(hyperparams=hyperparams)
-        timeseries_dataframe = ts_reader.produce(inputs=dataframe).value
+        ts_loader = TimeSeriesLoader(hyperparams=hyperparams)
+        timeseries_dataframe = ts_loader.produce(inputs=dataframe).value
 
         # verify that we have the expected shape
         self.assertEqual(timeseries_dataframe.shape[0], 4)
-        self.assertEqual(timeseries_dataframe.shape[1], 167)
+        self.assertEqual(timeseries_dataframe.shape[1], 166)
 
         times = []
         values = []
 
-        file_path = path.join(
-            path.dirname(__file__),
-            'data', 'datasets', 'timeseries_dataset_2', 'timeseries', '0000_train_ts.csv')
+        file_path = path.join(path.dirname(__file__), 'dataset', 'timeseries', '0000_train_ts.csv')
         file_path = path.abspath(file_path)
         with open(file_path, 'r') as csvfile:
             reader = csv.reader(csvfile)
@@ -45,18 +44,18 @@ class TimeSeriesLoaderPrimitiveTestCase(unittest.TestCase):
                 values.append(float(row[1]))
 
         # check that column headers are the times
-        self.assertListEqual(times, list(timeseries_dataframe.columns.values[1:]))
+        self.assertListEqual(times, list(timeseries_dataframe.columns.values))
 
         # check that the first row in the dataframe matches the values from the file
-        ts_values = list(timeseries_dataframe.iloc[0])[1:]
+        ts_values = list(timeseries_dataframe.iloc[0])
         self.assertEqual(len(ts_values), len(values))
 
     def test_can_accept_success(self) -> None:
         dataframe = self._load_timeseries()
 
         # instantiate the primitive and check acceptance
-        hyperparams_class = timeseries_reader.TimeSeriesReaderPrimitive.metadata.query()['primitive_code']['class_type_arguments']['Hyperparams']
-        ts_reader = timeseries_reader.TimeSeriesReaderPrimitive(hyperparams=hyperparams_class.defaults())
+        hyperparams_class = TimeSeriesLoader.metadata.query()['primitive_code']['class_type_arguments']['Hyperparams']
+        ts_reader = TimeSeriesLoader(hyperparams=hyperparams_class.defaults())
         metadata = ts_reader.can_accept(arguments={'inputs': dataframe.metadata},
                                         hyperparams=hyperparams_class.defaults(), method_name='produce')
         self.assertIsNotNone(metadata)
@@ -65,9 +64,9 @@ class TimeSeriesLoaderPrimitiveTestCase(unittest.TestCase):
         dataframe = self._load_timeseries()
 
         # instantiate the primitive and check acceptance
-        hyperparams_class = timeseries_reader.TimeSeriesReaderPrimitive.metadata.query()['primitive_code']['class_type_arguments']['Hyperparams']
+        hyperparams_class = TimeSeriesLoader.metadata.query()['primitive_code']['class_type_arguments']['Hyperparams']
         hyperparams = hyperparams_class.defaults().replace({'file_col_index': 4})
-        ts_reader = timeseries_reader.TimeSeriesReaderPrimitive(hyperparams=hyperparams_class.defaults())
+        ts_reader = TimeSeriesLoader(hyperparams=hyperparams_class.defaults())
         metadata = ts_reader.can_accept(arguments={'inputs': dataframe.metadata},
                                         hyperparams=hyperparams, method_name='produce')
         self.assertIsNone(metadata)
@@ -78,8 +77,14 @@ class TimeSeriesLoaderPrimitiveTestCase(unittest.TestCase):
 
         # load the dataset and convert resource 0 to a dataframe
         dataset = container.Dataset.load('file://{dataset_doc_path}'.format(dataset_doc_path=dataset_doc_path))
-        return dataset['0']
+        dataframe = dataset['0']
 
+        base_file_path = 'file://' + path.join(cls._dataset_path, 'timeseries')
+        dataframe.metadata = dataframe.metadata.set_for_value(dataframe)
+        dataframe.metadata = dataframe.metadata.add_semantic_type((metadata_base.ALL_ELEMENTS, 0), 'https://metadata.datadrivendiscovery.org/types/FileName')
+        dataframe.metadata = dataframe.metadata.update((metadata_base.ALL_ELEMENTS, 0), {'location_base_uris': [base_file_path]})
+
+        return dataframe
 
 if __name__ == '__main__':
     unittest.main()
