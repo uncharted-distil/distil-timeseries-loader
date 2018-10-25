@@ -55,6 +55,24 @@ class TimeSeriesLoaderPrimitiveTestCase(unittest.TestCase):
 
         # instantiate the primitive and check acceptance
         hyperparams_class = TimeSeriesLoader.metadata.query()['primitive_code']['class_type_arguments']['Hyperparams']
+        hyperparams = hyperparams_class.defaults().replace(
+            {
+                'file_col_index': 0,
+                'value_col_index': 1,
+                'time_col_index': 0
+            }
+        )
+
+        ts_reader = TimeSeriesLoader(hyperparams=hyperparams)
+        metadata = ts_reader.can_accept(arguments={'inputs': dataframe.metadata},
+                                        hyperparams=hyperparams_class.defaults(), method_name='produce')
+        self.assertIsNotNone(metadata)
+
+    def test_can_accept_success_inferred(self) -> None:
+        dataframe = self._load_timeseries()
+
+        # instantiate the primitive and check acceptance
+        hyperparams_class = TimeSeriesLoader.metadata.query()['primitive_code']['class_type_arguments']['Hyperparams']
         ts_reader = TimeSeriesLoader(hyperparams=hyperparams_class.defaults())
         metadata = ts_reader.can_accept(arguments={'inputs': dataframe.metadata},
                                         hyperparams=hyperparams_class.defaults(), method_name='produce')
