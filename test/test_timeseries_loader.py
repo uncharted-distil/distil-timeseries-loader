@@ -97,12 +97,26 @@ class TimeSeriesLoaderPrimitiveTestCase(unittest.TestCase):
         dataset = container.Dataset.load('file://{dataset_doc_path}'.format(dataset_doc_path=dataset_doc_path))
         dataframe = dataset['0']
 
+        # Add the metadata that the execution of the DatasetToDataframe primitive would typically
+        # have done.  We don't include the common_primitives package that would allow us to the call
+        # that primitive as a dependency because it transitively requires Tensorflow, Torch and Keras.
         base_file_path = 'file://' + path.join(cls._dataset_path, 'timeseries')
         dataframe.metadata = dataframe.metadata.set_for_value(dataframe)
-        dataframe.metadata = dataframe.metadata.add_semantic_type((metadata_base.ALL_ELEMENTS, 0), 'https://metadata.datadrivendiscovery.org/types/FileName')
-        dataframe.metadata = dataframe.metadata.update((metadata_base.ALL_ELEMENTS, 0), {'location_base_uris': [base_file_path]})
+        dataframe.metadata = dataframe.metadata. \
+            add_semantic_type((metadata_base.ALL_ELEMENTS, 0),
+                              'https://metadata.datadrivendiscovery.org/types/FileName')
+        dataframe.metadata = dataframe.metadata. \
+            add_semantic_type((metadata_base.ALL_ELEMENTS, 0),
+                              'https://metadata.datadrivendiscovery.org/types/Timeseries')
+
+        dataframe.metadata = dataframe.metadata.update((metadata_base.ALL_ELEMENTS, 0),
+                                                        {'media_types': ('text/csv',)})
+
+        dataframe.metadata = dataframe.metadata.update((metadata_base.ALL_ELEMENTS, 0),
+                                                       {'location_base_uris': (base_file_path,)})
 
         return dataframe
+
 
 if __name__ == '__main__':
     unittest.main()

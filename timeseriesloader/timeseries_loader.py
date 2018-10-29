@@ -42,6 +42,10 @@ class TimeSeriesLoaderPrimitive(transformer.TransformerPrimitiveBase[container.D
     The loading process assumes that each series file has an identical set of timestamps.
     """
 
+    _semantic_types = ('https://metadata.datadrivendiscovery.org/types/FileName',
+                       'https://metadata.datadrivendiscovery.org/types/Timeseries')
+    _media_types = ('text/csv',)
+
     __author__ = 'Uncharted Software',
     metadata = metadata_base.PrimitiveMetadata(
         {
@@ -63,23 +67,22 @@ class TimeSeriesLoaderPrimitive(transformer.TransformerPrimitiveBase[container.D
             'algorithm_types': [
                 metadata_base.PrimitiveAlgorithmType.FILE_MANIPULATION,
             ],
-            'supported_media_types': set('text/csv'),
+            'supported_media_types': _media_types,
             'primitive_family': metadata_base.PrimitiveFamily.DATA_PREPROCESSING,
         }
     )
 
     @classmethod
     def _find_csv_file_column(cls, inputs_metadata: metadata_base.DataMetadata) -> typing.Optional[int]:
-        indices = utils.list_columns_with_semantic_types(inputs_metadata,
-                                                         'https://metadata.datadrivendiscovery.org/types/FileName')
+        indices = utils.list_columns_with_semantic_types(inputs_metadata, cls._semantic_types)
         for i in indices:
-            if cls._is_file_column(inputs_metadata, i):
+            if cls._is_csv_file_column(inputs_metadata, i):
                 return i
         return None
 
     @classmethod
     def _is_csv_file_column(cls, inputs_metadata: metadata_base.DataMetadata, column_index: int) -> bool:
-        # check to see if a given column is a file pointer that poins to a csv file
+        # check to see if a given column is a file pointer that points to a csv file
         column_metadata = inputs_metadata.query((metadata_base.ALL_ELEMENTS, column_index))
 
         if not column_metadata or column_metadata['structural_type'] != str:
@@ -88,8 +91,7 @@ class TimeSeriesLoaderPrimitive(transformer.TransformerPrimitiveBase[container.D
         semantic_types = column_metadata.get('semantic_types', [])
         media_types = column_metadata.get('media_types', [])
 
-        return 'https://metadata.datadrivendiscovery.org/types/FileName' in semantic_types and \
-            'text/csv' in media_types
+        return set(cls._semantic_types).issubset(semantic_types) and set(cls._media_types).issubset(media_types)
 
     def produce(self, *,
                 inputs: container.DataFrame,
@@ -98,12 +100,13 @@ class TimeSeriesLoaderPrimitive(transformer.TransformerPrimitiveBase[container.D
 
         # make sure the column at the specified index exists and that it is a timeseries column
         file_index = self.hyperparams['file_col_index']
-        if file_index:
-            if not self._can_use_column(inputs.metadata, file_index):
+        if file_index is not None:
+            if not self._is_csv_file_column(inputs.metadata, file_index):
                 raise exceptions.InvalidArgumentValueError('column idx=' + str(file_index) + ' from '
                                                            + str(inputs.columns) + ' does not contain csv file names')
         else:
-            if not self._find_csv_file_column(inputs.metadata):
+            file_index = self._find_csv_file_column(inputs.metadata)
+            if file_index is None:
                 raise exceptions.InvalidArgumentValueError('no column from '
                                                            + str(inputs.columns) + ' contains csv file names')
 
@@ -149,12 +152,14 @@ class TimeSeriesLoaderPrimitive(transformer.TransformerPrimitiveBase[container.D
 
         # make sure there's a file column that points to a csv (search if unspecified)
         file_col_index = hyperparams['file_col_index']
-        if file_col_index:
-            can_use_column = cls._is_csv_file_column(inputs_metadata, hyperparams['file_col_index'])
+        if file_col_index is not None:
+            can_use_column = cls._is_csv_file_column(inputs_metadata, file_col_index)
             if not can_use_column:
                 return None
-        elif not cls._find_csv_file_column(inputs_metadata):
-            return None
+        else:
+            inferred_index = cls._find_csv_file_column(inputs_metadata)
+            if inferred_index is None:
+                return None
 
         # we don't have access to the data at this point so there's not much that we can
         # do to figure out the resulting shape etc
