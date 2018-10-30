@@ -110,7 +110,7 @@ class TimeSeriesLoaderPrimitiveTestCase(unittest.TestCase):
                               'https://metadata.datadrivendiscovery.org/types/Timeseries')
 
         dataframe.metadata = dataframe.metadata.update((metadata_base.ALL_ELEMENTS, 0),
-                                                        {'media_types': ('text/csv',)})
+                                                       {'media_types': ('text/csv',)})
 
         dataframe.metadata = dataframe.metadata.update((metadata_base.ALL_ELEMENTS, 0),
                                                        {'location_base_uris': (base_file_path,)})
