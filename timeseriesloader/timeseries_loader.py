@@ -114,7 +114,6 @@ class TimeSeriesLoaderPrimitive(transformer.TransformerPrimitiveBase[container.D
                 timeout: float = None,
                 iterations: int = None) -> base.CallResult[container.DataFrame]:
 
-        # make sure the column at the specified index exists and that it is a timeseries column
         file_index = self.hyperparams['file_col_index']
         if file_index is not None:
             if not self._is_csv_file_column(inputs.metadata, file_index):

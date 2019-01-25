@@ -7,10 +7,10 @@ setup(
     packages=['timeseriesloader'],
     keywords=['d3m_primitive'],
     install_requires=[
-        'pandas>=0.22.0',
-        'frozendict>=1.2',
-        'd3m'
-    ],
+        'pandas >= 0.23.4',
+        'frozendict==1.2',
+        'd3m==2019.1.21'
+        ],
     entry_points={
         'd3m.primitives': [
             'distil.TimeSeriesLoader = timeseriesloader.timeseries_loader:TimeSeriesLoaderPrimitive'
