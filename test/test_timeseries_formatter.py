@@ -1,5 +1,5 @@
 """
-   Copyright © 2018 Uncharted Software Inc.
+   Copyright © 2019 Uncharted Software Inc.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -35,9 +35,9 @@ class TimeSeriesFormatterPrimitiveTestCase(unittest.TestCase):
             TimeSeriesFormatter.metadata.query()['primitive_code']['class_type_arguments']['Hyperparams']
         hyperparams = hyperparams_class.defaults().replace(
             {
-                'file_col_index': 0,
-                'value_col_index': 1,
-                'time_col_index': 0
+                'file_col_index': 1,
+                'main_resource_index': '1',
+                'ref_resource_index': '0'
             }
         )
         ts_formatter = TimeSeriesFormatter(hyperparams=hyperparams)
@@ -73,9 +73,9 @@ class TimeSeriesFormatterPrimitiveTestCase(unittest.TestCase):
         hyperparams_class = TimeSeriesFormatter.metadata.query()['primitive_code']['class_type_arguments']['Hyperparams']
         hyperparams = hyperparams_class.defaults().replace(
             {
-                'file_col_index': 0,
-                'value_col_index': 1,
-                'time_col_index': 0
+                'file_col_index': 1,
+                'main_resource_index': '1',
+                'ref_resource_index': '0'
             }
         )
 
@@ -89,6 +89,12 @@ class TimeSeriesFormatterPrimitiveTestCase(unittest.TestCase):
 
         # instantiate the primitive and check acceptance
         hyperparams_class = TimeSeriesFormatter.metadata.query()['primitive_code']['class_type_arguments']['Hyperparams']
+        hyperparams = hyperparams_class.defaults().replace(
+            {
+                'main_resource_index': '1',
+                'ref_resource_index': '0'
+            }
+        )
         ts_reader = TimeSeriesFormatter(hyperparams=hyperparams_class.defaults())
         metadata = ts_reader.can_accept(arguments={'inputs': dataset.metadata},
                                         hyperparams=hyperparams_class.defaults(), method_name='produce')
@@ -99,7 +105,13 @@ class TimeSeriesFormatterPrimitiveTestCase(unittest.TestCase):
 
         # instantiate the primitive and check acceptance
         hyperparams_class = TimeSeriesFormatter.metadata.query()['primitive_code']['class_type_arguments']['Hyperparams']
-        hyperparams = hyperparams_class.defaults().replace({'file_col_index': 4})
+        hyperparams = hyperparams_class.defaults().replace(
+            {
+                'file_col_index': 4,
+                'main_resource_index': '1',
+                'ref_resource_index': '0'
+            }
+        )
         ts_reader = TimeSeriesFormatter(hyperparams=hyperparams_class.defaults())
         metadata = ts_reader.can_accept(arguments={'inputs': dataset.metadata},
                                         hyperparams=hyperparams, method_name='produce')

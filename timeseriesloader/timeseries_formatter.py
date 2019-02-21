@@ -37,20 +37,20 @@ class Hyperparams(hyperparams.Hyperparams):
         description='Index of column in input dataset containing time series file names.' +
                     'If set to None, will use the first csv filename column found.'
     )
-    ref_resource_index = hyperparams.Hyperparameter[typing.Union[string, None]](
+    ref_resource_index = hyperparams.Hyperparameter[typing.Union[str, None]](
         default='0',
         semantic_types=['https://metadata.datadrivendiscovery.org/types/ControlParameter'],
         description='Index of data resource in input dataset containing the timeseries data.'
     )
-    main_resource_index = hyperparams.Hyperparameter[typing.Union[string, None]](
+    main_resource_index = hyperparams.Hyperparameter[typing.Union[str, None]](
         default='1',
         semantic_types=['https://metadata.datadrivendiscovery.org/types/ControlParameter'],
         description='Index of data resource in input dataset containing the reference to timeseries data.'
     )
 
 
-class TimeSeriesFormatterPrimitive(transformer.TransformerPrimitiveBase[container.DataFrame,
-                                                                     container.DataFrame,
+class TimeSeriesFormatterPrimitive(transformer.TransformerPrimitiveBase[container.Dataset,
+                                                                     container.Dataset,
                                                                      Hyperparams]):
     """
     Reads the time series files from a given column in an input dataset resource into a new M x N data resource,
@@ -90,17 +90,17 @@ class TimeSeriesFormatterPrimitive(transformer.TransformerPrimitiveBase[containe
     )
 
     @classmethod
-    def _find_csv_file_column(cls, inputs_metadata: metadata_base.DataMetadata) -> typing.Optional[int]:
-        indices = utils.list_columns_with_semantic_types(inputs_metadata, cls._semantic_types)
+    def _find_csv_file_column(cls, inputs_metadata: metadata_base.DataMetadata, res_index: int) -> typing.Optional[int]:
+        indices = utils.list_columns_with_semantic_types(inputs_metadata, cls._semantic_types, at=(res_index,))
         for i in indices:
             if cls._is_csv_file_column(inputs_metadata, i):
                 return i
         return None
 
     @classmethod
-    def _is_csv_file_column(cls, inputs_metadata: metadata_base.DataMetadata, column_index: int) -> bool:
+    def _is_csv_file_column(cls, inputs_metadata: metadata_base.DataMetadata, res_index: int, column_index: int) -> bool:
         # check to see if a given column is a file pointer that points to a csv file
-        column_metadata = inputs_metadata.query((metadata_base.ALL_ELEMENTS, column_index))
+        column_metadata = inputs_metadata.query((res_index, metadata_base.ALL_ELEMENTS, column_index))
 
         if not column_metadata or column_metadata['structural_type'] != str:
             return False
@@ -115,21 +115,23 @@ class TimeSeriesFormatterPrimitive(transformer.TransformerPrimitiveBase[containe
                 timeout: float = None,
                 iterations: int = None) -> base.CallResult[container.DataFrame]:
 
+        main_resource_index = self.hyperparams['main_resource_index']
+        if main_resource_index is None:
+            raise exceptions.InvalidArgumentValueError('no main resource specified')
+
         file_index = self.hyperparams['file_col_index']
         if file_index is not None:
-            if not self._is_csv_file_column(inputs.metadata, file_index):
-                raise exceptions.InvalidArgumentValueError('column idx=' + str(file_index) + ' from '
-                                                           + str(inputs.columns) + ' does not contain csv file names')
+            if not self._is_csv_file_column(inputs.metadata, main_resource_index, file_index):
+                raise exceptions.InvalidArgumentValueError('column idx=' + str(file_index) + ' from does not contain csv file names')
         else:
             file_index = self._find_csv_file_column(inputs.metadata)
             if file_index is None:
-                raise exceptions.InvalidArgumentValueError('no column from '
-                                                           + str(inputs.columns) + ' contains csv file names')
+                raise exceptions.InvalidArgumentValueError('no column from contains csv file names')
 
         # generate the long form timeseries data
         base_path = inputs.metadata.query((metadata_base.ALL_ELEMENTS, file_index))['location_base_uris'][0]
         timeseries_dataframe: pd.DataFrame
-        for idx, tRow in inputs[main_resource_index].iterrows()):
+        for idx, tRow in inputs[main_resource_index].iterrows():
             # read the timeseries data
             csv_path = os.path.join(base_path, tRow[file_index])
             timeseries_row = pd.read_csv(csv_path)
@@ -171,14 +173,19 @@ class TimeSeriesFormatterPrimitive(transformer.TransformerPrimitiveBase[containe
 
         inputs_metadata = typing.cast(metadata_base.DataMetadata, arguments['inputs'])
 
+        main_resource_index = hyperparams['main_resource_index']
+        if main_resource_index is None:
+            return None
+
         # make sure there's a file column that points to a csv (search if unspecified)
         file_col_index = hyperparams['file_col_index']
         if file_col_index is not None:
-            can_use_column = cls._is_csv_file_column(inputs_metadata, file_col_index)
+            df_metadata = inputs_metadata.query((main_resource_index,))
+            can_use_column = cls._is_csv_file_column(inputs_metadata, main_resource_index, file_col_index)
             if not can_use_column:
                 return None
         else:
-            inferred_index = cls._find_csv_file_column(inputs_metadata)
+            inferred_index = cls._find_csv_file_column(inputs_metadata, main_resource_index)
             if inferred_index is None:
                 return None
 
