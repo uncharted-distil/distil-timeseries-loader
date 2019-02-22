@@ -36,8 +36,7 @@ class TimeSeriesFormatterPrimitiveTestCase(unittest.TestCase):
         hyperparams = hyperparams_class.defaults().replace(
             {
                 'file_col_index': 1,
-                'main_resource_index': '1',
-                'ref_resource_index': '0'
+                'main_resource_index': '1'
             }
         )
         ts_formatter = TimeSeriesFormatter(hyperparams=hyperparams)
@@ -74,8 +73,7 @@ class TimeSeriesFormatterPrimitiveTestCase(unittest.TestCase):
         hyperparams = hyperparams_class.defaults().replace(
             {
                 'file_col_index': 1,
-                'main_resource_index': '1',
-                'ref_resource_index': '0'
+                'main_resource_index': '1'
             }
         )
 
@@ -91,8 +89,7 @@ class TimeSeriesFormatterPrimitiveTestCase(unittest.TestCase):
         hyperparams_class = TimeSeriesFormatter.metadata.query()['primitive_code']['class_type_arguments']['Hyperparams']
         hyperparams = hyperparams_class.defaults().replace(
             {
-                'main_resource_index': '1',
-                'ref_resource_index': '0'
+                'main_resource_index': '1'
             }
         )
         ts_reader = TimeSeriesFormatter(hyperparams=hyperparams_class.defaults())
@@ -108,8 +105,7 @@ class TimeSeriesFormatterPrimitiveTestCase(unittest.TestCase):
         hyperparams = hyperparams_class.defaults().replace(
             {
                 'file_col_index': 4,
-                'main_resource_index': '1',
-                'ref_resource_index': '0'
+                'main_resource_index': '1'
             }
         )
         ts_reader = TimeSeriesFormatter(hyperparams=hyperparams_class.defaults())

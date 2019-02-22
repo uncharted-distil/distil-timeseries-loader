@@ -37,11 +37,6 @@ class Hyperparams(hyperparams.Hyperparams):
         description='Index of column in input dataset containing time series file names.' +
                     'If set to None, will use the first csv filename column found.'
     )
-    ref_resource_index = hyperparams.Hyperparameter[typing.Union[str, None]](
-        default='0',
-        semantic_types=['https://metadata.datadrivendiscovery.org/types/ControlParameter'],
-        description='Index of data resource in input dataset containing the timeseries data.'
-    )
     main_resource_index = hyperparams.Hyperparameter[typing.Union[str, None]](
         default='1',
         semantic_types=['https://metadata.datadrivendiscovery.org/types/ControlParameter'],
@@ -60,7 +55,9 @@ class TimeSeriesFormatterPrimitive(transformer.TransformerPrimitiveBase[containe
     """
 
     _semantic_types = ('https://metadata.datadrivendiscovery.org/types/FileName',
-                       'https://metadata.datadrivendiscovery.org/types/Timeseries')
+                       'https://metadata.datadrivendiscovery.org/types/Timeseries',
+                       'http://schema.org/Text',
+                       'https://metadata.datadrivendiscovery.org/types/Attribute')
     _media_types = ('text/csv',)
 
     __author__ = 'Uncharted Software',
@@ -90,17 +87,34 @@ class TimeSeriesFormatterPrimitive(transformer.TransformerPrimitiveBase[containe
     )
 
     @classmethod
-    def _find_csv_file_column(cls, inputs_metadata: metadata_base.DataMetadata, res_index: int) -> typing.Optional[int]:
-        indices = utils.list_columns_with_semantic_types(inputs_metadata, cls._semantic_types, at=(res_index,))
+    def _find_csv_file_column(cls, inputs_metadata: metadata_base.DataMetadata, res_id: int) -> typing.Optional[int]:
+        indices = utils.list_columns_with_semantic_types(inputs_metadata, cls._semantic_types, at=(res_id,))
         for i in indices:
-            if cls._is_csv_file_column(inputs_metadata, i):
+            if cls._is_csv_file_column(inputs_metadata, res_id, i):
                 return i
         return None
 
     @classmethod
-    def _is_csv_file_column(cls, inputs_metadata: metadata_base.DataMetadata, res_index: int, column_index: int) -> bool:
+    def _is_csv_file_column(cls, inputs_metadata: metadata_base.DataMetadata, res_id: int, column_index: int) -> bool:
         # check to see if a given column is a file pointer that points to a csv file
-        column_metadata = inputs_metadata.query((res_index, metadata_base.ALL_ELEMENTS, column_index))
+        column_metadata = inputs_metadata.query((res_id, metadata_base.ALL_ELEMENTS, column_index))
+
+        if not column_metadata or column_metadata['structural_type'] != str:
+            return False
+
+        # check if a foreign key exists
+        if column_metadata['foreign_key'] is None:
+            return False
+
+        ref_col_index = column_metadata['foreign_key']['column_index']
+        ref_res_id = column_metadata['foreign_key']['resource_id']
+
+        return cls._is_csv_file_reference(inputs_metadata, ref_res_id, ref_col_index)
+
+    @classmethod
+    def _is_csv_file_reference(cls, inputs_metadata: metadata_base.DataMetadata, res_id: int, column_index: int) -> bool:
+        # check to see if the column is a csv resource
+        column_metadata = inputs_metadata.query((res_id, metadata_base.ALL_ELEMENTS, column_index))
 
         if not column_metadata or column_metadata['structural_type'] != str:
             return False
@@ -108,7 +122,10 @@ class TimeSeriesFormatterPrimitive(transformer.TransformerPrimitiveBase[containe
         semantic_types = column_metadata.get('semantic_types', [])
         media_types = column_metadata.get('media_types', [])
 
-        return set(cls._semantic_types).issubset(semantic_types) and set(cls._media_types).issubset(media_types)
+        semantic_types_set = set(semantic_types)
+        _semantic_types_set = set(cls._semantic_types)
+
+        return bool(semantic_types_set.intersection(_semantic_types_set)) and set(cls._media_types).issubset(media_types)
 
     def produce(self, *,
                 inputs: container.Dataset,
@@ -129,30 +146,59 @@ class TimeSeriesFormatterPrimitive(transformer.TransformerPrimitiveBase[containe
                 raise exceptions.InvalidArgumentValueError('no column from contains csv file names')
 
         # generate the long form timeseries data
-        base_path = inputs.metadata.query((metadata_base.ALL_ELEMENTS, file_index))['location_base_uris'][0]
-        timeseries_dataframe: pd.DataFrame
+        base_path = self._get_base_path(inputs.metadata, main_resource_index, file_index)
+        timeseries_dataframe = pd.DataFrame()
         for idx, tRow in inputs[main_resource_index].iterrows():
             # read the timeseries data
             csv_path = os.path.join(base_path, tRow[file_index])
             timeseries_row = pd.read_csv(csv_path)
 
             # add the timeseries id
-            tRow = tRow.append([idx])
+            tRow = tRow.append(pd.Series(idx))
 
             for vIdx, vRow in timeseries_row.iterrows():
                 # combine the timeseries data with the value row
                 combined_data = tRow.append(vRow)
 
                 # add the timeseries index
-                timeseries_dataframe = timeseries_dataframe.append(combined_data)
+                timeseries_dataframe = timeseries_dataframe.append(combined_data, ignore_index=True)
 
         # add the metadata for the new timeseries id
 
         # join the metadata from the 2 data resources
-        metadata = utils.append_columns_metadata(inputs[main_resource_index].metadata, inputs[ref_resource_index].metadata)
+        ref_res_id = self._get_ref_resource(inputs.metadata, main_resource_index, file_index)
+        main_metadata = metadata_base.Metadata()
+        main_metadata = utils.copy_metadata(inputs.metadata, main_metadata, (main_resource_index,))
+        ref_metadata = metadata_base.Metadata()
+        ref_metadata = utils.copy_metadata(inputs.metadata, ref_metadata, (ref_res_id,))
+
+        metadata = utils.append_columns_metadata(main_metadata, ref_metadata)
 
         # wrap as a D3M container
-        return base.CallResult(container.Dataset(timeseries_dataframe, metadata))
+        #return base.CallResult(container.Dataset({'0': timeseries_dataframe}, metadata))
+        return base.CallResult(container.Dataset({'0': timeseries_dataframe}, generate_metadata=True))
+
+    def _get_base_path(self,
+                   inputs_metadata: metadata_base.DataMetadata,
+                   res_id: str,
+                   column_index: int) -> str:
+        # get the base uri from the referenced column
+        column_metadata = inputs_metadata.query((res_id, metadata_base.ALL_ELEMENTS, column_index))
+
+        ref_col_index = column_metadata['foreign_key']['column_index']
+        ref_res_id = column_metadata['foreign_key']['resource_id']
+
+        return inputs_metadata.query((ref_res_id, metadata_base.ALL_ELEMENTS, ref_col_index))['location_base_uris'][0]
+
+    def _get_ref_resource(self,
+                   inputs_metadata: metadata_base.DataMetadata,
+                   res_id: str,
+                   column_index: int) -> str:
+        # get the referenced resource from the referenced column
+        column_metadata = inputs_metadata.query((res_id, metadata_base.ALL_ELEMENTS, column_index))
+        ref_res_id = column_metadata['foreign_key']['resource_id']
+
+        return ref_res_id
 
     @classmethod
     def can_accept(cls, *,
@@ -180,7 +226,6 @@ class TimeSeriesFormatterPrimitive(transformer.TransformerPrimitiveBase[containe
         # make sure there's a file column that points to a csv (search if unspecified)
         file_col_index = hyperparams['file_col_index']
         if file_col_index is not None:
-            df_metadata = inputs_metadata.query((main_resource_index,))
             can_use_column = cls._is_csv_file_column(inputs_metadata, main_resource_index, file_col_index)
             if not can_use_column:
                 return None
