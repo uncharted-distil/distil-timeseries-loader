@@ -63,7 +63,7 @@ class TimeSeriesFormatterPrimitive(transformer.TransformerPrimitiveBase[containe
     __author__ = 'Uncharted Software',
     metadata = metadata_base.PrimitiveMetadata(
         {
-            'id': '1689aafa-16dc-4c55-8ad4-76cadcf46086',
+            'id': '1c4aed23-f3d3-4e6b-9710-009a9bc9b694',
             'version': '0.1.0',
             'name': 'Time series formatter',
             'python_path': 'd3m.primitives.distil.TimeSeriesFormatter',
