@@ -154,7 +154,7 @@ class TimeSeriesFormatterPrimitive(transformer.TransformerPrimitiveBase[containe
             timeseries_row = pd.read_csv(csv_path)
 
             # add the timeseries id
-            tRow = tRow.append(pd.Series(idx))
+            tRow = tRow.append(pd.Series({'series_id': int(idx)}))
 
             for vIdx, vRow in timeseries_row.iterrows():
                 # combine the timeseries data with the value row
@@ -163,16 +163,8 @@ class TimeSeriesFormatterPrimitive(transformer.TransformerPrimitiveBase[containe
                 # add the timeseries index
                 timeseries_dataframe = timeseries_dataframe.append(combined_data, ignore_index=True)
 
-        # add the metadata for the new timeseries id
-
         # join the metadata from the 2 data resources
-        ref_res_id = self._get_ref_resource(inputs.metadata, main_resource_index, file_index)
-        main_metadata = metadata_base.Metadata()
-        main_metadata = utils.copy_metadata(inputs.metadata, main_metadata, (main_resource_index,))
-        ref_metadata = metadata_base.Metadata()
-        ref_metadata = utils.copy_metadata(inputs.metadata, ref_metadata, (ref_res_id,))
-
-        metadata = utils.append_columns_metadata(main_metadata, ref_metadata)
+        timeseries_dataframe = container.DataFrame(timeseries_dataframe)
 
         # wrap as a D3M container
         #return base.CallResult(container.Dataset({'0': timeseries_dataframe}, metadata))

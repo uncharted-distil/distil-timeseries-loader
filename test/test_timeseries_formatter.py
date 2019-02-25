@@ -43,27 +43,8 @@ class TimeSeriesFormatterPrimitiveTestCase(unittest.TestCase):
         timeseries_dataset = ts_formatter.produce(inputs=dataset).value
 
         # verify that we have the expected shape
-        self.assertEqual(timeseries_dataset.shape[0], 4)
-        self.assertEqual(timeseries_dataset.shape[1], 166)
-
-        times = []
-        values = []
-
-        file_path = path.join(path.dirname(__file__), 'dataset', 'timeseries', '0000_train_ts.csv')
-        file_path = path.abspath(file_path)
-        with open(file_path, 'r') as csvfile:
-            reader = csv.reader(csvfile)
-            next(reader)
-            for row in reader:
-                times.append(int(row[0]))
-                values.append(float(row[1]))
-
-        # check that column headers are the times
-        self.assertListEqual(times, list(timeseries_dataset.columns.values))
-
-        # check that the first row in the dataframe matches the values from the file
-        ts_values = list(timeseries_dataset.iloc[0])
-        self.assertEqual(len(ts_values), len(values))
+        self.assertEqual(timeseries_dataset['0'].shape[0], 664)
+        self.assertEqual(timeseries_dataset['0'].shape[1], 6)
 
     def test_can_accept_success(self) -> None:
         dataset = self._load_timeseries()
