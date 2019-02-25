@@ -13,7 +13,8 @@ setup(
         ],
     entry_points={
         'd3m.primitives': [
-            'distil.TimeSeriesLoader = timeseriesloader.timeseries_loader:TimeSeriesLoaderPrimitive'
+            'distil.TimeSeriesLoader = timeseriesloader.timeseries_loader:TimeSeriesLoaderPrimitive',
+            'distil.TimeSeriesFormatter = timeseriesloader.timeseries_formatter:TimeSeriesFormatterPrimitive'
         ],
     }
 )
