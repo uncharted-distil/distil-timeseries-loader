@@ -156,7 +156,6 @@ class TimeSeriesFormatterPrimitive(transformer.TransformerPrimitiveBase[containe
 
             # add the timeseries id
             tRow = tRow.append(pd.Series({'series_id': int(idx)}))
-            output = pan
 
             # combine the timeseries data with the value row
             output_data.extend([pd.concat([tRow, vRow]) for vIdx, vRow in timeseries_row.iterrows()])
