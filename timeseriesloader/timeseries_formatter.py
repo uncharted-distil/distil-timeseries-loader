@@ -147,6 +147,7 @@ class TimeSeriesFormatterPrimitive(transformer.TransformerPrimitiveBase[containe
 
         # generate the long form timeseries data
         base_path = self._get_base_path(inputs.metadata, main_resource_index, file_index)
+        output_data = []
         timeseries_dataframe = pd.DataFrame()
         for idx, tRow in inputs[main_resource_index].iterrows():
             # read the timeseries data
@@ -156,12 +157,11 @@ class TimeSeriesFormatterPrimitive(transformer.TransformerPrimitiveBase[containe
             # add the timeseries id
             tRow = tRow.append(pd.Series({'series_id': int(idx)}))
 
-            for vIdx, vRow in timeseries_row.iterrows():
-                # combine the timeseries data with the value row
-                combined_data = tRow.append(vRow)
+            # combine the timeseries data with the value row
+            output_data.extend([pd.concat([tRow, vRow]) for vIdx, vRow in timeseries_row.iterrows()])
 
-                # add the timeseries index
-                timeseries_dataframe = timeseries_dataframe.append(combined_data, ignore_index=True)
+        # add the timeseries index
+        timeseries_dataframe = timeseries_dataframe.append(output_data, ignore_index=True)
 
         # join the metadata from the 2 data resources
         timeseries_dataframe = container.DataFrame(timeseries_dataframe)
