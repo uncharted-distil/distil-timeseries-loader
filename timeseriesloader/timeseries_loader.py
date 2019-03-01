@@ -76,7 +76,7 @@ class TimeSeriesLoaderPrimitive(transformer.TransformerPrimitiveBase[container.D
             },
             'installation': [{
                 'type': metadata_base.PrimitiveInstallationType.PIP,
-                'package_uri': 'git+https://gitlab.com/unchartedsoftware/distil-timeseries-loader.git@' +
+                'package_uri': 'git+https://gitlab.com/uncharted-distil/distil-timeseries-loader.git@' +
                                '{git_commit}#egg=distil-timeseries-loader'
                                .format(git_commit=d3m_utils.current_git_commit(os.path.dirname(__file__)),),
             }],

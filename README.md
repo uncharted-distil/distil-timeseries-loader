@@ -5,7 +5,7 @@ A glue priimitive that reads the time series files from a given column in an inp
 Deployment:
 
 ```shell
-pip install -e git+ssh://git@github.com/unchartedsoftware/distil-timeseries-loader.git#egg=DistilTimeSeriesLoader --process-dependency-links
+pip install -e git+ssh://git@github.com/uncharted-distil/distil-timeseries-loader.git#egg=DistilTimeSeriesLoader --process-dependency-links
 ```
 
 Development:
