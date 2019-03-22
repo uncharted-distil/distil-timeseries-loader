@@ -64,7 +64,7 @@ class TimeSeriesFormatterPrimitive(transformer.TransformerPrimitiveBase[containe
     metadata = metadata_base.PrimitiveMetadata(
         {
             'id': '1c4aed23-f3d3-4e6b-9710-009a9bc9b694',
-            'version': '0.1.0',
+            'version': '0.1.1',
             'name': 'Time series formatter',
             'python_path': 'd3m.primitives.distil.TimeSeriesFormatter',
             'keywords': ['series', 'reader', 'csv'],

@@ -1,5 +1,5 @@
 """
-   Copyright © 2018 Uncharted Software Inc.
+   Copyright © 2019 Uncharted Software Inc.
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -66,7 +66,7 @@ class TimeSeriesLoaderPrimitive(transformer.TransformerPrimitiveBase[container.D
     metadata = metadata_base.PrimitiveMetadata(
         {
             'id': '1689aafa-16dc-4c55-8ad4-76cadcf46086',
-            'version': '0.1.0',
+            'version': '0.1.1',
             'name': 'Time series loader',
             'python_path': 'd3m.primitives.distil.TimeSeriesLoader',
             'keywords': ['series', 'reader', 'csv'],
