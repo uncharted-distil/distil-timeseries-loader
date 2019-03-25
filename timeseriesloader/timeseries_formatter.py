@@ -64,7 +64,7 @@ class TimeSeriesFormatterPrimitive(transformer.TransformerPrimitiveBase[containe
     metadata = metadata_base.PrimitiveMetadata(
         {
             'id': '1c4aed23-f3d3-4e6b-9710-009a9bc9b694',
-            'version': '0.1.1',
+            'version': '0.1.2',
             'name': 'Time series formatter',
             'python_path': 'd3m.primitives.distil.TimeSeriesFormatter',
             'keywords': ['series', 'reader', 'csv'],
@@ -75,7 +75,7 @@ class TimeSeriesFormatterPrimitive(transformer.TransformerPrimitiveBase[containe
             'installation': [{
                 'type': metadata_base.PrimitiveInstallationType.PIP,
                 'package_uri': 'git+https://gitlab.com/uncharted-distil/distil-timeseries-loader.git@' +
-                               '{git_commit}#egg=DistilTimeSeriesLoader-0.1.1'
+                               '{git_commit}#egg=DistilTimeSeriesLoader-0.1.2'
                                .format(git_commit=d3m_utils.current_git_commit(os.path.dirname(__file__)),),
             }],
             'algorithm_types': [

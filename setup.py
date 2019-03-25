@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='DistilTimeSeriesLoader',
-    version='0.1.1',
+    version='0.1.2',
     description='loads time series stored in csv files into rows of a Dataframe',
     packages=['timeseriesloader'],
     keywords=['d3m_primitive'],
