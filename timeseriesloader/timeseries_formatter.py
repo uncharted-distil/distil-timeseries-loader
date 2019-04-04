@@ -84,7 +84,7 @@ class TimeSeriesFormatterPrimitive():
                 timeout: float = None,
                 iterations: int = None,
                 file_index: int = -1,
-                main_resource_index: int = -1) -> base.CallResult[container.DataFrame]:
+                main_resource_index: int = -1) -> pd.DataFrame:
 
         if main_resource_index < 0:
             raise exceptions.InvalidArgumentValueError('no main resource specified')
@@ -120,7 +120,7 @@ class TimeSeriesFormatterPrimitive():
 
         # wrap as a D3M container
         #return base.CallResult(container.Dataset({'0': timeseries_dataframe}, metadata))
-        return base.CallResult(container.Dataset({'0': timeseries_dataframe}, generate_metadata=True))
+        return timeseries_dataframe
 
     def _get_base_path(self,
                    inputs_metadata: metadata_base.DataMetadata,
