@@ -30,61 +30,13 @@ from common_primitives import utils
 __all__ = ('TimeSeriesFormatterPrimitive',)
 
 
-class Hyperparams(hyperparams.Hyperparams):
-    file_col_index = hyperparams.Hyperparameter[typing.Union[int, None]](
-        default=None,
-        semantic_types=['https://metadata.datadrivendiscovery.org/types/ControlParameter'],
-        description='Index of column in input dataset containing time series file names.' +
-                    'If set to None, will use the first csv filename column found.'
-    )
-    main_resource_index = hyperparams.Hyperparameter[typing.Union[str, None]](
-        default='1',
-        semantic_types=['https://metadata.datadrivendiscovery.org/types/ControlParameter'],
-        description='Index of data resource in input dataset containing the reference to timeseries data.'
-    )
-
-
-class TimeSeriesFormatterPrimitive(transformer.TransformerPrimitiveBase[container.Dataset,
-                                                                     container.Dataset,
-                                                                     Hyperparams]):
+class TimeSeriesFormatterPrimitive():
     """
     Reads the time series files from a given column in an input dataset resource into a new M x N data resource,
     where each value in timeseries occupies one of M rows. Each row has N columns, representing the union of
     the fields found in the timeseries files and in the main data resource.
     The loading process assumes that each series file has an identical set of timestamps.
     """
-
-    _semantic_types = ('https://metadata.datadrivendiscovery.org/types/FileName',
-                       'https://metadata.datadrivendiscovery.org/types/Timeseries',
-                       'http://schema.org/Text',
-                       'https://metadata.datadrivendiscovery.org/types/Attribute')
-    _media_types = ('text/csv',)
-
-    __author__ = 'Uncharted Software',
-    metadata = metadata_base.PrimitiveMetadata(
-        {
-            'id': '1c4aed23-f3d3-4e6b-9710-009a9bc9b694',
-            'version': '0.1.2',
-            'name': 'Time series formatter',
-            'python_path': 'd3m.primitives.distil.TimeSeriesFormatter',
-            'keywords': ['series', 'reader', 'csv'],
-            'source': {
-                'name': 'Uncharted Software',
-                'contact': 'mailto:chris.bethune@uncharted.software'
-            },
-            'installation': [{
-                'type': metadata_base.PrimitiveInstallationType.PIP,
-                'package_uri': 'git+https://gitlab.com/uncharted-distil/distil-timeseries-loader.git@' +
-                               '{git_commit}#egg=DistilTimeSeriesLoader-0.1.2'
-                               .format(git_commit=d3m_utils.current_git_commit(os.path.dirname(__file__)),),
-            }],
-            'algorithm_types': [
-                metadata_base.PrimitiveAlgorithmType.FILE_MANIPULATION,
-            ],
-            'supported_media_types': _media_types,
-            'primitive_family': metadata_base.PrimitiveFamily.DATA_PREPROCESSING,
-        }
-    )
 
     @classmethod
     def _find_csv_file_column(cls, inputs_metadata: metadata_base.DataMetadata, res_id: int) -> typing.Optional[int]:
@@ -130,14 +82,14 @@ class TimeSeriesFormatterPrimitive(transformer.TransformerPrimitiveBase[containe
     def produce(self, *,
                 inputs: container.Dataset,
                 timeout: float = None,
-                iterations: int = None) -> base.CallResult[container.DataFrame]:
+                iterations: int = None,
+                file_index: int = -1,
+                main_resource_index: int = -1) -> base.CallResult[container.DataFrame]:
 
-        main_resource_index = self.hyperparams['main_resource_index']
-        if main_resource_index is None:
+        if main_resource_index < 0:
             raise exceptions.InvalidArgumentValueError('no main resource specified')
 
-        file_index = self.hyperparams['file_col_index']
-        if file_index is not None:
+        if file_index >= 0:
             if not self._is_csv_file_column(inputs.metadata, main_resource_index, file_index):
                 raise exceptions.InvalidArgumentValueError('column idx=' + str(file_index) + ' from does not contain csv file names')
         else:
@@ -191,41 +143,3 @@ class TimeSeriesFormatterPrimitive(transformer.TransformerPrimitiveBase[containe
         ref_res_id = column_metadata['foreign_key']['resource_id']
 
         return ref_res_id
-
-    @classmethod
-    def can_accept(cls, *,
-                   method_name: str,
-                   arguments: typing.Dict[str, typing.Union[metadata_base.Metadata, type]],
-                   hyperparams: Hyperparams) -> typing.Optional[metadata_base.DataMetadata]:
-        output_metadata = super().can_accept(method_name=method_name, arguments=arguments, hyperparams=hyperparams)
-
-        # If structural types didn't match, don't bother.
-        if output_metadata is None:
-            return None
-
-        if method_name != 'produce':
-            return output_metadata
-
-        if 'inputs' not in arguments:
-            return output_metadata
-
-        inputs_metadata = typing.cast(metadata_base.DataMetadata, arguments['inputs'])
-
-        main_resource_index = hyperparams['main_resource_index']
-        if main_resource_index is None:
-            return None
-
-        # make sure there's a file column that points to a csv (search if unspecified)
-        file_col_index = hyperparams['file_col_index']
-        if file_col_index is not None:
-            can_use_column = cls._is_csv_file_column(inputs_metadata, main_resource_index, file_col_index)
-            if not can_use_column:
-                return None
-        else:
-            inferred_index = cls._find_csv_file_column(inputs_metadata, main_resource_index)
-            if inferred_index is None:
-                return None
-
-        # we don't have access to the data at this point so there's not much that we can
-        # do to figure out the resulting shape etc
-        return inputs_metadata
