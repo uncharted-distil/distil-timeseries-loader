@@ -84,9 +84,9 @@ class TimeSeriesFormatterPrimitive():
                 timeout: float = None,
                 iterations: int = None,
                 file_index: int = -1,
-                main_resource_index: int = -1) -> pd.DataFrame:
+                main_resource_index: str = None) -> pd.DataFrame:
 
-        if main_resource_index < 0:
+        if main_resource_index is None:
             raise exceptions.InvalidArgumentValueError('no main resource specified')
 
         if file_index >= 0:
