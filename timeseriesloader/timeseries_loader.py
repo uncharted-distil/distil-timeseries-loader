@@ -66,18 +66,19 @@ class TimeSeriesLoaderPrimitive(transformer.TransformerPrimitiveBase[container.D
     metadata = metadata_base.PrimitiveMetadata(
         {
             'id': '1689aafa-16dc-4c55-8ad4-76cadcf46086',
-            'version': '0.1.2',
+            'version': '0.2.0',
             'name': 'Time series loader',
-            'python_path': 'd3m.primitives.distil.TimeSeriesLoader',
+            'python_path': 'd3m.primitives.data_preprocessing.timeseries_loader.DistilTimeSeriesLoader',
             'keywords': ['series', 'reader', 'csv'],
             'source': {
                 'name': 'Uncharted Software',
-                'contact': 'mailto:chris.bethune@uncharted.software'
+                'contact': 'mailto:chris.bethune@uncharted.software',
+                'uris': ['https://gitlab.com/uncharted-distil/distil-timeseries-loader']
             },
             'installation': [{
                 'type': metadata_base.PrimitiveInstallationType.PIP,
                 'package_uri': 'git+https://gitlab.com/uncharted-distil/distil-timeseries-loader.git@' +
-                               '{git_commit}#egg=DistilTimeSeriesLoader-0.1.2'
+                               '{git_commit}#egg=DistilTimeSeriesLoader-0.2.0'
                                .format(git_commit=d3m_utils.current_git_commit(os.path.dirname(__file__)),),
             }],
             'algorithm_types': [
@@ -145,37 +146,3 @@ class TimeSeriesLoaderPrimitive(transformer.TransformerPrimitiveBase[container.D
 
         # wrap as a D3M container - metadata should be auto generated
         return base.CallResult(container.DataFrame(data=timeseries_dataframe))
-
-    @classmethod
-    def can_accept(cls, *,
-                   method_name: str,
-                   arguments: typing.Dict[str, typing.Union[metadata_base.Metadata, type]],
-                   hyperparams: Hyperparams) -> typing.Optional[metadata_base.DataMetadata]:
-        output_metadata = super().can_accept(method_name=method_name, arguments=arguments, hyperparams=hyperparams)
-
-        # If structural types didn't match, don't bother.
-        if output_metadata is None:
-            return None
-
-        if method_name != 'produce':
-            return output_metadata
-
-        if 'inputs' not in arguments:
-            return output_metadata
-
-        inputs_metadata = typing.cast(metadata_base.DataMetadata, arguments['inputs'])
-
-        # make sure there's a file column that points to a csv (search if unspecified)
-        file_col_index = hyperparams['file_col_index']
-        if file_col_index is not None:
-            can_use_column = cls._is_csv_file_column(inputs_metadata, file_col_index)
-            if not can_use_column:
-                return None
-        else:
-            inferred_index = cls._find_csv_file_column(inputs_metadata)
-            if inferred_index is None:
-                return None
-
-        # we don't have access to the data at this point so there's not much that we can
-        # do to figure out the resulting shape etc
-        return inputs_metadata

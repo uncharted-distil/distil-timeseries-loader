@@ -19,7 +19,7 @@ from os import path
 import csv
 
 from d3m import container
-from d3m.primitives.distil import TimeSeriesFormatter
+from d3m.primitives.data_preprocessing.timeseries_formatter import DistilTimeSeriesFormatter as TimeSeriesFormatter
 from d3m.metadata import base as metadata_base
 
 
@@ -45,54 +45,6 @@ class TimeSeriesFormatterPrimitiveTestCase(unittest.TestCase):
         # verify that we have the expected shape
         self.assertEqual(timeseries_dataset['0'].shape[0], 664)
         self.assertEqual(timeseries_dataset['0'].shape[1], 6)
-
-    def test_can_accept_success(self) -> None:
-        dataset = self._load_timeseries()
-
-        # instantiate the primitive and check acceptance
-        hyperparams_class = TimeSeriesFormatter.metadata.query()['primitive_code']['class_type_arguments']['Hyperparams']
-        hyperparams = hyperparams_class.defaults().replace(
-            {
-                'file_col_index': 1,
-                'main_resource_index': '1'
-            }
-        )
-
-        ts_reader = TimeSeriesFormatter(hyperparams=hyperparams)
-        metadata = ts_reader.can_accept(arguments={'inputs': dataset.metadata},
-                                        hyperparams=hyperparams_class.defaults(), method_name='produce')
-        self.assertIsNotNone(metadata)
-
-    def test_can_accept_success_inferred(self) -> None:
-        dataset = self._load_timeseries()
-
-        # instantiate the primitive and check acceptance
-        hyperparams_class = TimeSeriesFormatter.metadata.query()['primitive_code']['class_type_arguments']['Hyperparams']
-        hyperparams = hyperparams_class.defaults().replace(
-            {
-                'main_resource_index': '1'
-            }
-        )
-        ts_reader = TimeSeriesFormatter(hyperparams=hyperparams_class.defaults())
-        metadata = ts_reader.can_accept(arguments={'inputs': dataset.metadata},
-                                        hyperparams=hyperparams_class.defaults(), method_name='produce')
-        self.assertIsNotNone(metadata)
-
-    def test_can_accept_bad_column(self) -> None:
-        dataset = self._load_timeseries()
-
-        # instantiate the primitive and check acceptance
-        hyperparams_class = TimeSeriesFormatter.metadata.query()['primitive_code']['class_type_arguments']['Hyperparams']
-        hyperparams = hyperparams_class.defaults().replace(
-            {
-                'file_col_index': 4,
-                'main_resource_index': '1'
-            }
-        )
-        ts_reader = TimeSeriesFormatter(hyperparams=hyperparams_class.defaults())
-        metadata = ts_reader.can_accept(arguments={'inputs': dataset.metadata},
-                                        hyperparams=hyperparams, method_name='produce')
-        self.assertIsNone(metadata)
 
     @classmethod
     def _load_timeseries(cls) -> container.Dataset:

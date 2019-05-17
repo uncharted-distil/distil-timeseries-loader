@@ -19,7 +19,7 @@ from os import path
 import csv
 
 from d3m import container
-from d3m.primitives.distil import TimeSeriesLoader
+from d3m.primitives.data_preprocessing.timeseries_loader import DistilTimeSeriesLoader as TimeSeriesLoader
 from d3m.metadata import base as metadata_base
 
 
@@ -66,45 +66,6 @@ class TimeSeriesLoaderPrimitiveTestCase(unittest.TestCase):
         ts_values = list(timeseries_dataframe.iloc[0])
         self.assertEqual(len(ts_values), len(values))
 
-    def test_can_accept_success(self) -> None:
-        dataframe = self._load_timeseries()
-
-        # instantiate the primitive and check acceptance
-        hyperparams_class = TimeSeriesLoader.metadata.query()['primitive_code']['class_type_arguments']['Hyperparams']
-        hyperparams = hyperparams_class.defaults().replace(
-            {
-                'file_col_index': 0,
-                'value_col_index': 1,
-                'time_col_index': 0
-            }
-        )
-
-        ts_reader = TimeSeriesLoader(hyperparams=hyperparams)
-        metadata = ts_reader.can_accept(arguments={'inputs': dataframe.metadata},
-                                        hyperparams=hyperparams_class.defaults(), method_name='produce')
-        self.assertIsNotNone(metadata)
-
-    def test_can_accept_success_inferred(self) -> None:
-        dataframe = self._load_timeseries()
-
-        # instantiate the primitive and check acceptance
-        hyperparams_class = TimeSeriesLoader.metadata.query()['primitive_code']['class_type_arguments']['Hyperparams']
-        ts_reader = TimeSeriesLoader(hyperparams=hyperparams_class.defaults())
-        metadata = ts_reader.can_accept(arguments={'inputs': dataframe.metadata},
-                                        hyperparams=hyperparams_class.defaults(), method_name='produce')
-        self.assertIsNotNone(metadata)
-
-    def test_can_accept_bad_column(self) -> None:
-        dataframe = self._load_timeseries()
-
-        # instantiate the primitive and check acceptance
-        hyperparams_class = TimeSeriesLoader.metadata.query()['primitive_code']['class_type_arguments']['Hyperparams']
-        hyperparams = hyperparams_class.defaults().replace({'file_col_index': 4})
-        ts_reader = TimeSeriesLoader(hyperparams=hyperparams_class.defaults())
-        metadata = ts_reader.can_accept(arguments={'inputs': dataframe.metadata},
-                                        hyperparams=hyperparams, method_name='produce')
-        self.assertIsNone(metadata)
-
     @classmethod
     def _load_timeseries(cls) -> container.DataFrame:
         dataset_doc_path = path.join(cls._dataset_path, 'datasetDoc.json')
@@ -117,7 +78,7 @@ class TimeSeriesLoaderPrimitiveTestCase(unittest.TestCase):
         # have done.  We don't include the common_primitives package that would allow us to the call
         # that primitive as a dependency because it transitively requires Tensorflow, Torch and Keras.
         base_file_path = 'file://' + path.join(cls._dataset_path, 'timeseries')
-        dataframe.metadata = dataframe.metadata.set_for_value(dataframe)
+        dataframe.metadata = dataframe.metadata.generate(dataframe)
         dataframe.metadata = dataframe.metadata. \
             add_semantic_type((metadata_base.ALL_ELEMENTS, 0),
                               'https://metadata.datadrivendiscovery.org/types/FileName')
