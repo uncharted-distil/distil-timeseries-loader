@@ -130,7 +130,7 @@ class TimeSeriesFormatterPrimitive(transformer.TransformerPrimitiveBase[containe
     def produce(self, *,
                 inputs: container.Dataset,
                 timeout: float = None,
-                iterations: int = None) -> base.CallResult[container.DataFrame]:
+                iterations: int = None) -> base.CallResult[container.Dataset]:
 
         main_resource_index = self.hyperparams['main_resource_index']
         if main_resource_index is None:
@@ -191,4 +191,3 @@ class TimeSeriesFormatterPrimitive(transformer.TransformerPrimitiveBase[containe
         ref_res_id = column_metadata['foreign_key']['resource_id']
 
         return ref_res_id
-
