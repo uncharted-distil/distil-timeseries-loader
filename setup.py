@@ -9,7 +9,7 @@ setup(
     install_requires=[
         'pandas >= 0.23.4',
         'frozendict==1.2',
-        'd3m==2019.4.4'
+        'd3m'
         ],
     entry_points={
         'd3m.primitives': [
